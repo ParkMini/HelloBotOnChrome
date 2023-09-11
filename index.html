@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H@ll0BOt0nWeEB</title>
+    <script src="./tf.js"></script>
+    <script src="./posenet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<video id="video" autoplay></video>
+<audio id="audio" src="./tts.mp3"></audio>
+
+<script>
+    const videoElement = document.getElementById('video');
+    const audioElement = document.getElementById('audio');
+
+    async function setupCamera() {
+        videoElement.width = 1920;
+        videoElement.height = 1080;
+
+        const stream = await navigator.mediaDevices.getUserMedia({'video': true});
+        videoElement.srcObject = stream;
+
+        return new Promise((resolve) => {
+            videoElement.onloadedmetadata = () => {
+                resolve(videoElement);
+            };
+        });
+    }
+
+    async function bindPoseNet() {
+        const net = await posenet.load();
+        let lastPlayTime = Date.now();
+
+        setInterval(async () => {
+            const poses = await net.estimateSinglePose(videoElement);
+            if (poses.keypoints.some(k => k.score > 0.5)) {
+                const now = Date.now();
+                if (now - lastPlayTime > 5000) {
+                    audioElement.play();
+                    lastPlayTime = now;
+                }
+            }
+        }, 100);
+    }
+
+    async function bindPage() {
+        await setupCamera();
+        videoElement.play();
+        bindPoseNet();
+    }
+
+    window.onload = bindPage;
+</script>
+</body>
+</html>
